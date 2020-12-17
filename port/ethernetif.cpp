@@ -193,9 +193,10 @@ err_t ethernetif_init(struct netif *netif)
     NVIC_EnableIRQ(ETH_IRQn);
 
     //                                      _______*** pins ***_______
-    // 
+    
+    #ifdef STM32H750_DISCOVERY_KIT
+     
     //                          _______* MII_RX_CLK *_______
-
     MII_RX_CLK::Mode(ALT_OUTPUT);
     MII_RX_CLK::Alternate(ALT_FUNC_ETH);
 
@@ -266,11 +267,53 @@ err_t ethernetif_init(struct netif *netif)
     //                          _______* INT *_______
     INT::Mode(INPUT);
     
+    #else
+    
+    //                          _______* ETH_CLK *_______
+    ETH_CLK::Mode(ALT_OUTPUT);
+    ETH_CLK::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_RXD0 *_______
+    ETH_RXD0::Mode(ALT_OUTPUT);
+    ETH_RXD0::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_RXD1 *_______
+    ETH_RXD1::Mode(ALT_OUTPUT);
+    ETH_RXD1::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_CRS_DV *_______
+    ETH_CRS_DV::Mode(ALT_OUTPUT);
+    ETH_CRS_DV::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_TX_EN *_______
+    ETH_TX_EN::Mode(ALT_OUTPUT);
+    ETH_TX_EN::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_TXD0 *_______
+    ETH_TXD0::Mode(ALT_OUTPUT);
+    ETH_TXD0::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_TXD1 *_______
+    ETH_TXD1::Mode(ALT_OUTPUT);
+    ETH_TXD1::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_MDC *_______
+    ETH_MDC::Mode(ALT_OUTPUT);
+    ETH_MDC::Alternate(ALT_FUNC_ETH);
+
+    //                          _______* ETH_MDIO *_______
+    ETH_MDIO::Mode(ALT_OUTPUT);
+    ETH_MDIO::Alternate(ALT_FUNC_ETH);
+
+    
+    
     //                                      _______* SYSCFG clock enable *_______
-    //RCC->APB4ENR |= RCC_APB4ENR_SYSCFGEN;
+    RCC->APB4ENR |= RCC_APB4ENR_SYSCFGEN;
     
     //                                      _______* set RMII *_______
-    //SYSCFG->PMCR |= SYSCFG_PMCR_EPIS_SEL_2;
+    SYSCFG->PMCR |= SYSCFG_PMCR_EPIS_SEL_2;
+    
+    #endif
     
     //                                      _______*** clocks ***_______
     
@@ -430,12 +473,12 @@ void eth_phy_write(uint8_t phy_address, uint8_t reg_address, uint16_t data)
 void lan8740_init()
 {    
     //reset
-    eth_phy_write(0x01, LAN8740_BCR, BCR_RESET);
+    eth_phy_write(phy_addr, LAN8740_BCR, BCR_RESET);
     //wait until reset done
-    while(eth_phy_read(0x01, LAN8740_BCR) & BCR_RESET) {}
+    while(eth_phy_read(phy_addr, LAN8740_BCR) & BCR_RESET) {}
     
     // set advertisement
-    eth_phy_write(0x01, LAN8740_ANAR, 0
+    eth_phy_write(phy_addr, LAN8740_ANAR, 0
                   | ANAR_100BTX
                   | ANAR_100BTX_FD
                   | ANAR_PAUSE0
@@ -443,13 +486,13 @@ void lan8740_init()
                  );
     
     // enable auto negotiation
-    eth_phy_write(0x01, LAN8740_BCR, 0
+    eth_phy_write(phy_addr, LAN8740_BCR, 0
                   | BCR_AN_EN
                   | BCR_RESTART_AN
                  );
     
     // enable interrupt
-    eth_phy_write(0x01, LAN8740_IMR, 0
+    eth_phy_write(phy_addr, LAN8740_IMR, 0
                   | IMR_AN_COMPLETE
                   | IMR_LINK_DOWN
                  );
@@ -462,7 +505,7 @@ void lan8740_status()
     uint16_t status_reg;
     
     // read LAN8740 BSR
-    status_reg = eth_phy_read(0x01, LAN8740_BSR);
+    status_reg = eth_phy_read(phy_addr, LAN8740_BSR);
     
     // auto-neg status
     phy_auto_neg = status_reg & BSR_AN_COMPLETE;
